@@ -39,6 +39,12 @@ export default class Utils {
     static decimalRound(num:number) {
         return Math.round(num * 100) / 100.0
     }
+
+    static normalizeAngle(angle:number): number {
+        var newAngle = angle;
+        while (newAngle < 0) { newAngle += 2 * Math.PI; }
+        return newAngle % (2 * Math.PI);
+    }
 }
 
 

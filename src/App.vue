@@ -253,8 +253,8 @@
         private generation = 0;
         private sidebarVisible = false;
         private reset = false
-        private petri:PetriDish;
-        private lastDrawnPetri: PetriDish;
+        private petri!:PetriDish;
+        private lastDrawnPetri!: PetriDish;
         private excecutingInterval = false;
         private equationStrings = ['','',''];
         private lastDrawnPlants:Plant[] = [];
@@ -659,10 +659,9 @@
         private getSeedLocations() {
             if (Parameters.numPlants === 1) { return [new Point(Parameters.halfCanvas, Parameters.halfCanvas)]; }
             var locationAngle = 2 * Math.PI / Parameters.numPlants;
-            var centerPoint = new Point(Parameters.halfCanvas, Parameters.halfCanvas);
             var seedLocations:Point[] = [];
             for (let i = 0; i < Parameters.numPlants; i++) {
-                seedLocations.push(Point.createFromAngle(centerPoint, i * locationAngle , Parameters.innerCanvas))
+                seedLocations.push(Point.createFromAngle(Parameters.center, i * locationAngle , Parameters.innerCanvas))
             }
             return seedLocations;
         }

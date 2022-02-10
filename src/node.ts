@@ -4,9 +4,9 @@ import { Parameters } from './parameters';
 export default class Node {
 
     static createRootNode(location:Point, center:Point) {
-        /*var angleToCenter = Point.angle(location, center) ;
-        var sliceToCenter = Math.round(angleToCenter / Parameters.sliceSize);*/
-        return new Node(location, center, 0, 0, 0, 0, new EmptyNode());
+        var initialGrowthAngle = Math.random() * 2 * Math.PI;
+        var absoluteSlice = Math.floor(initialGrowthAngle / Parameters.sliceSize);
+        return new Node(location, center, 0, absoluteSlice, 0, 0, new EmptyNode());
     }
 
     static createChildNode(location:Point, parent:Node, growthDirection:number, absoluteDirection:number, center:Point, root:Point) {
@@ -25,7 +25,6 @@ export default class Node {
     totalChildren:number;
 
     //normalized inputs (in range [0,1])
-    directionToCenter:number;
     distanceToCenter:number;
     relativeSlice:number;
     absoluteSlice:number;
@@ -40,7 +39,6 @@ export default class Node {
             this.nodesFromRoot = nodesFromRoot;
             this.children = [];
             this.totalChildren = 0
-            this.directionToCenter = Point.angle(location, center);
             this.distanceToCenter = Point.distance(location, center);
             this.relativeSlice = relativeSlice;
             this.absoluteSlice = absoluteSlice;

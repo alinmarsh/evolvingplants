@@ -1,3 +1,6 @@
+
+import Utils from './utils';
+
 export default class Point {
 
     static distance(pointA:Point, pointB: Point): number {
@@ -7,9 +10,7 @@ export default class Point {
     // angle from point A to point B
     static angle(pointA:Point, pointB: Point): number {
         let angle = Math.atan2(pointB.y - pointA.y, pointB.x - pointA.x);
-        while (angle < 0) { angle += 2 * Math.PI; }
-        while (angle > 2 * Math.PI) { angle -= 2 * Math.PI; }
-        return angle;
+        return Utils.normalizeAngle(angle);
     }
 
     static close(pointA:Point, pointB: Point): boolean {

@@ -66,6 +66,7 @@ export class Parameters {
     static innerCanvas:number = Parameters.halfCanvas * 3.5 / 5;
     static unitSize = Parameters.canvasPixelSize / Parameters.scaleFromPixel;
     static newScaleFromPixel = Parameters.scaleFromPixel;
+    static center = new Point(Parameters.halfCanvas, Parameters.halfCanvas);
 
 
     // Evolution:

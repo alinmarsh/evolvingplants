@@ -114,6 +114,12 @@ export default class Equation {
                 if (restOfEquation.length > 3) { 
                     restOfEquation[3] = restOfEquation[0] > restOfEquation[1] ? restOfEquation[2] : restOfEquation[3];
                     restOfEquation.splice(0, 3);
+                } else if (restOfEquation.length > 2) {
+                    restOfEquation[2] = Math.random() * 2 - 1 > restOfEquation[0] ? restOfEquation[1] : restOfEquation[2];
+                    restOfEquation.splice(0, 2);
+                } else if (restOfEquation.length > 1) {
+                    restOfEquation[1] = Math.random() * 2 - 1 > 1.5 ? restOfEquation[0] : restOfEquation[1];
+                    restOfEquation.splice(0, 1);
                 }
                 break;
 
@@ -315,6 +321,12 @@ export default class Equation {
                         restOfEquation[3] = `if (${restOfEquation[0]} > ${restOfEquation[1]}) { ${restOfEquation[2]} } else { ${restOfEquation[3]} }`;
                     }
                     restOfEquation.splice(0, 3);
+                } else if (restOfEquation.length > 2) {
+                    restOfEquation[2] = `if (${Constants.RANDOM} > ${restOfEquation[0]}) { ${restOfEquation[1]} } else { ${restOfEquation[2]} }`;
+                    restOfEquation.splice(0, 2);
+                } else if (restOfEquation.length > 1) {
+                    restOfEquation[1] = `if (${Constants.RANDOM} > 1.5) { ${restOfEquation[0]} } else { ${restOfEquation[1]} }`;
+                    restOfEquation.splice(0, 1);
                 }
                 break;
 
@@ -347,7 +359,7 @@ export default class Equation {
             case Constants.EMPTY_SURROUNDING:
                 return 'empty_surrounding_space';
             case Constants.ENEMIES_SURROUNDING:
-                return 'nearby_enimies';
+                return 'nearby_enemies';
             case Constants.TIME:
                 return 'time';
             case Constants.RANDOM:

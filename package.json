@@ -1,0 +1,75 @@
+{
+  "name": "web3d",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build --dest=/dist",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "@types/request-promise": "^4.1.46",
+    "@types/uuid": "^8.3.0",
+    "core-js": "^3.7.0",
+    "jquery": "^3.5.1",
+    "react": "^17.0.1",
+    "react-native": "^0.64.2",
+    "rfs": "^9.0.3",
+    "sass": "^1.29.0",
+    "sass-loader": "^10.1.0",
+    "uuid": "^8.3.1",
+    "vue": "^2.6.14",
+    "vue-class-component": "^7.2.6",
+    "vue-observe-visibility": "^1.0.0",
+    "vue-property-decorator": "^9.0.2",
+    "vue-resize-observer": "^1.0.32",
+    "vue-unique-id": "^3.1.4",
+    "webrtc-adapter": "^7.7.0",
+    "xml-js": "^1.6.11"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.8",
+    "@types/webpack": "^4.41.25",
+    "@typescript-eslint/eslint-plugin": "^4.8.1",
+    "@typescript-eslint/parser": "^4.8.1",
+    "@vue/cli-plugin-babel": "~4.5.15",
+    "@vue/cli-plugin-typescript": "~4.5.15",
+    "@vue/cli-service": "~4.5.15",
+    "@vue/eslint-config-prettier": "^6.0.0",
+    "@vue/eslint-config-typescript": "^7.0.0",
+    "eslint": "^6.8.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "eslint-plugin-vue": "^7.1.0",
+    "prettier": "^2.1.2",
+    "typescript": "~4.0.5",
+    "vue-template-compiler": "^2.6.14"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/essential",
+      "eslint:recommended",
+      "@vue/typescript/recommended",
+      "@vue/prettier",
+      "@vue/prettier/@typescript-eslint"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 2020
+    },
+    "rules": {
+      "@typescript-eslint/camelcase": [
+        "off"
+      ]
+    }
+  },
+  "prettier": {
+    "trailingComma": "none"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ]
+}

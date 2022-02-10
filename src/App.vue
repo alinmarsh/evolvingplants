@@ -646,13 +646,16 @@
         }
 
         private growPlants(plants:Plant[], draw:boolean):boolean {
-            let stillGrowing = false;
+            let stillGrowing  = new Array<Plant>();
             plants.forEach((plant, index) => {
                 if (plant.grow(draw)) { 
-                    stillGrowing = true; 
+                    stillGrowing.push(plant);
                 }
             });
-            return stillGrowing;
+            if (stillGrowing.length == 1 && Parameters.numPlants > 2) {
+                return this.getPlantRankings(plants)[plants.length - 1].id !== stillGrowing[0].id;
+            }
+            return stillGrowing.length > 0;
         }
 
        

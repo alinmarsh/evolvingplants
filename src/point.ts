@@ -61,4 +61,13 @@ export default class Point {
     print() {
         console.log(`(${this.x}, ${this.y})`)
     }
+
+    add(other:Point):Point {
+        return new Point(this.x + other.getX(), this.y + other.getY());
+    }
+
+    sub(other:Point):Point {
+        return new Point(this.x - other.getX(), this.y - other.getY());
+    }
+
 }

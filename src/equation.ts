@@ -115,10 +115,10 @@ export default class Equation {
                     restOfEquation[3] = restOfEquation[0] > restOfEquation[1] ? restOfEquation[2] : restOfEquation[3];
                     restOfEquation.splice(0, 3);
                 } else if (restOfEquation.length > 2) {
-                    restOfEquation[2] = Math.random() * 2 - 1 > restOfEquation[0] ? restOfEquation[1] : restOfEquation[2];
+                    restOfEquation[2] = this.getRandomNumber() > restOfEquation[0] ? restOfEquation[1] : restOfEquation[2];
                     restOfEquation.splice(0, 2);
                 } else if (restOfEquation.length > 1) {
-                    restOfEquation[1] = Math.random() * 2 - 1 > 1.5 ? restOfEquation[0] : restOfEquation[1];
+                    restOfEquation[1] = this.getRandomNumber() > 0 ? restOfEquation[0] : restOfEquation[1];
                     restOfEquation.splice(0, 1);
                 }
                 break;
@@ -168,11 +168,11 @@ export default class Equation {
                 return this.petri.getTime();
 
             case Constants.RANDOM:
-                return Parameters.allowRandomness ? Math.random() * 2 - 1 : 1;
+                return Parameters.allowRandomness ? this.getRandomNumber() : 1;
 
             case Constants.BRANCHES:
                 if (typeof(this.memo[Constants.BRANCHES]) === 'undefined') { 
-                    this.memo[Constants.BRANCHES] = node.children.length; 
+                    this.memo[Constants.BRANCHES] = node.children.length * 3; 
                 }
                 return this.memo[Constants.BRANCHES];
                 
@@ -182,6 +182,9 @@ export default class Equation {
         }
     }
 
+    getRandomNumber() {
+        return Math.random() * 2 - 1;
+    }
 
     readableString(equation:number[], equationType:string):string {
         var expressionStrings = this.expressionsToString(equation);
@@ -322,10 +325,10 @@ export default class Equation {
                     }
                     restOfEquation.splice(0, 3);
                 } else if (restOfEquation.length > 2) {
-                    restOfEquation[2] = `if (${Constants.RANDOM} > ${restOfEquation[0]}) { ${restOfEquation[1]} } else { ${restOfEquation[2]} }`;
+                    restOfEquation[2] = `if (${this.constantToString(Constants.RANDOM)} > ${restOfEquation[0]}) { ${restOfEquation[1]} } else { ${restOfEquation[2]} }`;
                     restOfEquation.splice(0, 2);
                 } else if (restOfEquation.length > 1) {
-                    restOfEquation[1] = `if (${Constants.RANDOM} > 1.5) { ${restOfEquation[0]} } else { ${restOfEquation[1]} }`;
+                    restOfEquation[1] = `if (${this.constantToString(Constants.RANDOM)} > 0) { ${restOfEquation[0]} } else { ${restOfEquation[1]} }`;
                     restOfEquation.splice(0, 1);
                 }
                 break;

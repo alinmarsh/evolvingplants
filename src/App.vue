@@ -33,9 +33,14 @@
                             v-on:click="handleInput('displayEquations'); toggle('equationDisplay');">
                     </div>
                     <div class="input">
-                        <span>Drawing Speed</span>
+                        <span>Drawing speed</span>
                         <input type="range" id="drawingDelayInput" min="0" max="100"
                                 v-on:change="handleInput('drawingDelay')">
+                    </div>
+                    <div class="input">
+                        <span>Disable rendering</span>
+                        <input type="checkbox" id="noRenderInput" 
+                            v-on:click="handleInput('noRender');">
                     </div>
                     <div class="input">
                         <span>Number of plants:</span>
@@ -355,7 +360,7 @@
 
         setInputVariableValues() {
             const inputVariableNames = ["allowStraightLines", "skipGenerations", "activateRoundDelay", 
-                                        "displayEquations", "drawingDelay", "scaleFromPixel", "numPlants",
+                                        "displayEquations", "drawingDelay", "noRender", "scaleFromPixel", "numPlants",
                                         "percentMaximumImperfectCopy", "probibilityRandomPlant",
                                         "percentPlantsReplaced", "numberGrowthAngles",
                                         "maximumLiveNodes", "growthOpportunities", 

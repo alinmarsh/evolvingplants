@@ -53,8 +53,9 @@ export class Parameters {
     static skipGenerations:number = 1;
     static delay:number = 0;
     static drawingDelay:number = 0;
+    static noRender:boolean = false;
     static readonly roundDelay:number = 2500;
-    static activateRoundDelay:boolean = true;
+    static activateRoundDelay:boolean = false;
     static displayEquations:boolean = false;
     static scaleFromPixel:number = 100.0; // 20 or 50 percent of height one square will be
     static numPlants:number = 5;
@@ -151,6 +152,9 @@ export class Parameters {
                     return;
                 case 'displayEquations':
                     Parameters.displayEquations = newBoolean;
+                    return;
+                case 'noRender':
+                    Parameters.noRender = newBoolean;
                     return;
                 case 'allowStraightLines':
                     Parameters.allowStraightLines = newBoolean;

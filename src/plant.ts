@@ -146,7 +146,7 @@ export default class Plant{
             this.nodes.push(newNode);
             this.liveNodes.push(newNode);
             if (draw) { 
-                if (this.nodes.length % 10 === 0) { this.drawChildren(this.nodes[0]); }
+                if (!Parameters.noRender && this.nodes.length % 10 === 0) { this.drawChildren(this.nodes[0]); }
                 else { this.canvas.drawThickLine(growingNode.location, newNode.location, 0.04, this.colorString()); }
             }
         } else {

@@ -34,7 +34,10 @@ export default class PetriDish {
             this.dish.push(dishColumn);
         }
         this.time = 0;
-        this.blockingCount = Array<Set<number>>(Parameters.numPlants + 1).fill(new Set());
+        this.blockingCount = Array<Set<number>>(Parameters.numPlants + 1);
+        for (let i = 1; i < this.blockingCount.length; i++) {
+            this.blockingCount[i] = new Set();
+        }
     }
 
     drawClaimed() {
@@ -87,30 +90,30 @@ export default class PetriDish {
         //this.canvas.drawSquare(area, 1, '#000000');
     }
 
-    tryGrowingNode(id:number, growingNode:Node, newLocation:Point, relativeSlice:number) {
+    tryGrowingNode(id:number, growingNode:Node, newLocation:Point, relativeSlice:number):boolean[] {
         this.time++;
         if (Math.abs(relativeSlice * Parameters.sliceSize - Math.PI) < 0.01 || (!Parameters.allowStraightLines && relativeSlice % Parameters.numberGrowthAngles === 0)) { 
             //console.log('grew back');
-            return false; 
+            return [false, false]; 
         }
         return this.attemptGrowth(id, growingNode.location, newLocation, true);
     }
 
-    private attemptGrowth(id:number, startPoint:Point, endPoint:Point, attemptClaim:boolean) {
+    private attemptGrowth(id:number, startPoint:Point, endPoint:Point, attemptClaim:boolean):boolean[] {
         if (!this.inDish(endPoint)) { 
             //console.log('Endpoint outside dish');
-            return false; 
+            return [false, true]; 
         }
         var squareOwner = this.squareAt(endPoint).getOwner();
         //if (isNaN(squareOwner)) { throw new Error('Owner NaN, possible cross'); }
         if (squareOwner !== 0 && squareOwner !== id) { 
             if (squareOwner !== -1) { this.blockingCount[squareOwner].add(id); }
             //console.log('owned by other');
-            return false; 
+            return [false, true]; 
         }
         if (this.squareAt(endPoint).getRecources() <= 0) { 
             //console.log('no recources');
-            return false; }
+            return [false, false]; }
         var crossesDiagonal = endPoint.getX() !== startPoint.getX() && endPoint.getY() !== startPoint.getY();
         if (crossesDiagonal) {
             var diagonalPointA = new Point(startPoint.getX(), endPoint.getY());
@@ -121,13 +124,13 @@ export default class PetriDish {
             }
             if (grewDiagonal) {
                 this.addGrowth(id, endPoint, attemptClaim);
-                return true;
+                return [true, false];
             }
-            return false
+            return [false, false];
         }
 
         this.addGrowth(id, endPoint, attemptClaim);
-        return true;
+        return [true, false];
     }
 
     getCenter() {

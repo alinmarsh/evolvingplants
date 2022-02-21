@@ -38,6 +38,11 @@
                                 v-on:change="handleInput('drawingDelay')">
                     </div>
                     <div class="input">
+                        <span>Optimize generations</span>
+                        <input type="checkbox" id="skipGensInput" 
+                            v-on:click="handleInput('skipGens');">
+                    </div>
+                    <div class="input">
                         <span>Disable rendering</span>
                         <input type="checkbox" id="noRenderInput" 
                             v-on:click="handleInput('noRender');">
@@ -106,7 +111,7 @@
                             <label for="randomParentInput">Most branches</label><br>
 
                             <input type="radio" name="objective" v-on:change="radioChange('objectiveFunction', '1')">
-                            <label for="randomParentInput">Longest survival</label><br>
+                            <label for="randomParentInput">Most leaves</label><br>
 
                             <input type="radio" name="objective" v-on:change="radioChange('objectiveFunction', '3')">
                             <label for="randomParentInput">Most offensive</label><br>
@@ -313,7 +318,7 @@
                     this.lastDrawnPetri = draw ? this.petri : this.lastDrawnPetri;
                     const interval = setInterval(() => {
                         if (!this.paused && !(draw && Date.now() - lastDrawnTime < roundDelay)) {
-                            stillGrowing = this.growPlants(plants,  draw);
+                            stillGrowing = this.growPlants(plants,  draw, true);
                             if (!stillGrowing || this.reset) { 
                                 this.excecutingInterval = false;
                                 evolvingState = this.reset ? 0 : 1;
@@ -343,7 +348,10 @@
                     testPetri = new PetriDish(2 * Parameters.halfCanvas, canvas);
                     candidatePlants = this.getCandidateEvolvedPlants(plantRankings, newSeedLocations, testPetri, canvas);
                     growing = true;
-                    evolvingState = 3;
+                    if (plantTryCount > 25) {
+                        plantToBeat = plantRankings[0];
+                    }
+                    evolvingState = Parameters.skipGens ? 3 : 4;
                 }
                 if (evolvingState == 3 && !this.excecutingInterval && !this.reset) {
                     this.excecutingInterval = true;
@@ -359,8 +367,8 @@
                     var newList:Plant[] = new Array<Plant>(candidatePlants.length + 1);
                     candidatePlants.forEach((plant, index) => {newList[index] = plant; });
                     newList[candidatePlants.length] = plantToBeat as Plant;
-                    var rankings = this.getPlantRankings(newList);
-                    if (rankings[rankings.length - 1].id != plantToBeat.id || this.reset || plantTryCount > 50){
+                    var rankings = this.getPlantRankings(newList, true);
+                    if (rankings[rankings.length - 1].id != plantToBeat.id || this.reset || plantTryCount > 50 || !Parameters.skipGens){
                         if (this.reset) {
                             this.generation = 0;
                             plants = this.makeInitialPlants(canvas, this.petri, this.getSeedLocations());
@@ -415,7 +423,7 @@
 
         setInputVariableValues() {
             const inputVariableNames = ["allowStraightLines", "skipGenerations", "activateRoundDelay", 
-                                        "displayEquations", "drawingDelay", "noRender", "scaleFromPixel", "numPlants",
+                                        "displayEquations", "drawingDelay", "noRender", "skipGens", "scaleFromPixel", "numPlants",
                                         "percentMaximumImperfectCopy", "probibilityRandomPlant",
                                         "percentPlantsReplaced", "numberGrowthAngles",
                                         "maximumLiveNodes", "growthOpportunities", 
@@ -668,15 +676,18 @@
             return replacingPlants;
         }
 
-        private getPlantRankings(plants:Plant[]) {
+        private getPlantRankings(plants:Plant[], noOffense:boolean = false) {
             var scores = Array<[number, number]>();
+            var objectiveFunction = Parameters.objectiveFunction;
+            if (objectiveFunction == Objectives.OFFENSE && noOffense)
+                objectiveFunction = Objectives.NODES; 
             plants.forEach((plant,index) => {
-                switch(Parameters.objectiveFunction) {
+                switch(objectiveFunction) {
                         case Objectives.AREA:
                             scores.push([plant.getGrowth(), index]);
                             break;
-                        case Objectives.SURVIVAL:
-                            scores.push([plant.timeOfDeath < 0 ? this.petri.getTime() : plant.timeOfDeath, index]);
+                        case Objectives.LEAVES:
+                            scores.push([plant.getLeaves(), index]);//[plant.timeOfDeath < 0 ? this.petri.getTime() : plant.timeOfDeath, index]);
                             break;
                         case Objectives.NODES:
                             scores.push([plant.nodes.length, index]);

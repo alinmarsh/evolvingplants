@@ -21,6 +21,7 @@ export default class Node {
     nodesFromRoot:number;
     children:Node[];
     totalChildren:number;
+    leaves:number;
 
     //normalized inputs (in range [0,1])
     distanceToCenter:number;
@@ -43,6 +44,7 @@ export default class Node {
             this.northDirection = Point.angle(location, new Point(location.getX(), 0));
             //this.nodesFromRootNorm = parent.nodesFromRoot + 1;
             this.distanceFromRoot = distanceFromRoot;
+            this.leaves = 0;
 
             this.parent.addChild(this);
         }
@@ -55,6 +57,16 @@ export default class Node {
     addDescendant() {
         this.totalChildren++;
         this.parent.addDescendant();
+    }
+
+    addLeaf() {
+        this.leaves = 1;
+    }
+
+    getLeaves() {
+        var totalLeaves = this.leaves;
+        this.children.forEach((child, index) => totalLeaves += child.getLeaves());
+        return totalLeaves;
     }
 
 }

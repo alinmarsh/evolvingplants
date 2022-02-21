@@ -70,4 +70,13 @@ export default class Point {
         return new Point(this.x - other.getX(), this.y - other.getY());
     }
 
+    rotate(angle:number, other:Point = new Point(0,0)) {
+        var normalizedPoint = this.sub(other);
+        var cos = Math.cos(angle);
+        var sin = Math.sin(angle);
+        var rotatedPoint = new Point(normalizedPoint.getX() * cos - normalizedPoint.getY() * sin,
+            normalizedPoint.getX() * sin + normalizedPoint.getY() * cos);
+        return rotatedPoint.add(other);
+    }
+
 }

@@ -2,7 +2,7 @@ import Point from './point';
 
 export class Objectives {
     static readonly AREA:number = 0;
-    static readonly SURVIVAL:number = 1;
+    static readonly LEAVES:number = 1;
     static readonly NODES:number = 2;
     static readonly OFFENSE:number = 3;
 
@@ -54,6 +54,7 @@ export class Parameters {
     static delay:number = 0;
     static drawingDelay:number = 0;
     static noRender:boolean = false;
+    static skipGens:boolean = false;
     static readonly roundDelay:number = 2500;
     static activateRoundDelay:boolean = false;
     static displayEquations:boolean = false;
@@ -155,6 +156,9 @@ export class Parameters {
                     return;
                 case 'noRender':
                     Parameters.noRender = newBoolean;
+                    return;
+                case 'skipGens':
+                    Parameters.skipGens = newBoolean;
                     return;
                 case 'allowStraightLines':
                     Parameters.allowStraightLines = newBoolean;

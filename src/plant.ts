@@ -13,6 +13,10 @@ export default class Plant{
         //var color = '#' + Math.floor(Math.random()*16777215).toString(16);
         //var color = `hsl(${Utils.random(0,360)}, ${Utils.random(25,85)}%, 90%)`;
         const color = [Utils.random(0,360), Utils.random(25,85), 85];
+        // TODO: centralize leafcolor
+        var leafColor = [color[0], color[1], color[2] - 20];
+        var leafSize = Utils.random(10,20);        
+        var leafOffset = new Point(Utils.random(6,12), Utils.random(6, 17)); // 10,10 the best
 
         var branchEquation:number[] = [];
         var directionEquation:number[] = [];
@@ -22,13 +26,11 @@ export default class Plant{
             directionEquation.push(Math.floor(Math.random() * Parameters.equationNumberChoices));
             locationEquation.push(Math.floor(Math.random() * Parameters.equationNumberChoices));
         }
-        return new Plant(id, petri, canvas, color, seedLocation, branchEquation, directionEquation, locationEquation, evaluator);
+        return new Plant(id, petri, canvas, color, leafColor, seedLocation, leafSize, leafOffset, branchEquation, directionEquation, locationEquation, evaluator);
     }
 
     static createChildPlant(id:number, parent:Plant, petri:PetriDish, canvas:Canvas, newSeedLocation:Point) {
-        const newColor = parent.color;
-        newColor[2] = Math.max(newColor[2] - 1, 25);
-        return new Plant(id, petri, canvas, parent.color, newSeedLocation, parent.branchEquation, 
+        return new Plant(id, petri, canvas, parent.color, parent.leafColor, newSeedLocation, parent.leafSize, parent.leafOffset, parent.branchEquation, 
             parent.directionEquation, parent.locationEquation, new Equation(petri));
     }
 
@@ -36,6 +38,9 @@ export default class Plant{
         maxEquationLength:number = Parameters.maxEquationLength) {
 
         var color = [Utils.random(0,360), Utils.random(25,85), 85];
+        var leafColor = [color[0], color[1], color[2] - 20];
+        var leafSize = Utils.random(10,20);
+        var leafOffset = new Point(Utils.random(6,12), Utils.random(6,17)); // 10,10 the best
         var branchEquationA:number[] = Utils.copyArray(parentA.branchEquation);
         var directionEquationA:number[] = Utils.copyArray(parentA.directionEquation);
         var locationEquationA:number[] = Utils.copyArray(parentA.locationEquation);
@@ -49,8 +54,8 @@ export default class Plant{
         var newLocationEquation = Plant.mergeEquations(locationEquationA, locationEquationB, maxEquationLength);
         
 
-        return new Plant(id, petri, canvas, color, newSeedLocation, newBranchEquation, 
-            newDirectionEquation, newLocationEquation, new Equation(petri));
+        return new Plant(id, petri, canvas, color, leafColor, newSeedLocation, leafSize, leafOffset,
+            newBranchEquation, newDirectionEquation, newLocationEquation, new Equation(petri));
     }
 
     static mergeEquations(equationA:number[], equationB:number[], maxLength:number) {
@@ -72,6 +77,9 @@ export default class Plant{
     petri:PetriDish;
     canvas:Canvas;
     color:number[];
+    leafColor:number[];
+    leafSize:number;
+    leafOffset:Point;
     seedLocation:Point;
     rotation:number;
     branchEquation:number[];
@@ -85,14 +93,18 @@ export default class Plant{
     liveNodes:Node[];
 
 
-    constructor(id:number, petri:PetriDish, canvas:Canvas, color:number[],
-        seedLocation:Point, branchEquation:number[], directionEquation:number[], locationEquation:number[],
+    constructor(id:number, petri:PetriDish, canvas:Canvas, color:number[], leafColor:number[],
+        seedLocation:Point, leafSize:number, leafOffset:Point,
+        branchEquation:number[], directionEquation:number[], locationEquation:number[],
         evaluator:Equation) {
 
         this.id = id;
         this.petri = petri;
         this.canvas = canvas;
         this.color = color;
+        this.leafColor = leafColor;
+        this.leafSize = leafSize;
+        this.leafOffset = leafOffset;
         this.seedLocation = seedLocation;
         this.rotation = Point.angle(this.seedLocation, this.petri.getCenter());
         this.branchEquation = branchEquation;
@@ -107,7 +119,7 @@ export default class Plant{
         this.germinate();
     }
 
-    grow(draw:boolean) {
+    grow(draw:boolean, firstGrowth:boolean = true):boolean {
         if (this.liveNodes.length === 0) { 
             return false; }
 
@@ -134,7 +146,9 @@ export default class Plant{
         
         var newLocation = Point.createFromAngle(growingNode.location, absoluteSlice * Parameters.sliceSize + this.rotation, 1);
         var addedArea:boolean = this.petri.areaClaimable(this.id, newLocation);
-        const grew = this.petri.tryGrowingNode(this.id, growingNode, newLocation, relativeSlice);
+        let result = this.petri.tryGrowingNode(this.id, growingNode, newLocation, relativeSlice);
+        const grew = result[0];
+        var blocked = result[1];
         
         if (grew) {
             if (addedArea) { 
@@ -151,14 +165,21 @@ export default class Plant{
             }
         } else {
             var badIndex = this.liveNodes.indexOf(growingNode);
+            this.killNode(this.liveNodes[badIndex], draw, blocked);
             this.liveNodes.splice(badIndex, 1);
         }
 
+        
+        while (this.liveNodes.length > Parameters.maximumLiveNodes) {
+            this.killNode(this.liveNodes[0], draw);
+            this.liveNodes = this.liveNodes.slice(1, this.liveNodes.length);
+        }
         if (this.liveNodes.length === 0) {
             this.timeOfDeath = this.petri.getTime();
-        }
-        while (this.liveNodes.length > Parameters.maximumLiveNodes) {
-            this.liveNodes = this.liveNodes.slice(1, this.liveNodes.length);
+        } else if (firstGrowth){
+            var probibilitySecondGrowth = this.getLeaves() * 0.01;
+            if (Math.random() < probibilitySecondGrowth)
+                return this.grow(draw, false);
         }
         return this.liveNodes.length > 0;
     }
@@ -179,8 +200,32 @@ export default class Plant{
         }
     }
 
+    killNode(node:Node, draw:boolean, backwardsLeaf:boolean = true) {
+        if (node.totalChildren == 0) {
+            node.addLeaf();
+            if (draw && !Parameters.noRender)
+                this.drawLeaf(node, backwardsLeaf);
+        }
+    }
+
+    drawLeaf(node:Node, backwardsLeaf:boolean) {
+        var angle =  Utils.random(-0.0001, 0.0001);
+        if (node.parent instanceof Node) {
+            if (!backwardsLeaf)
+                angle = Utils.normalizeAngle(angle + Point.angle(node.parent.location, node.location));
+            else
+                angle = Utils.normalizeAngle(Point.angle(node.parent.location, node.location) + Math.PI);
+        }
+        this.canvas.drawLeaf(node.location, this.leafSize, angle, this.leafOffset, this.leafColorString());
+    }
+
     colorString() {
         return `hsl(${this.color[0]}, ${this.color[1]}%, ${this.color[2]}%)`;
+    }
+
+    leafColorString() {
+        this.leafColor[2] = Math.min(this.leafColor[2] + 0.25, 90);
+        return `hsl(${this.leafColor[0]}, ${this.leafColor[1]}%, ${this.leafColor[2]}%)`;
     }
 
     germinate() {
@@ -212,5 +257,9 @@ export default class Plant{
 
     getGrowth() {
         return this.squaresOwned;
+    }
+
+    getLeaves() {
+        return this.nodes[0].getLeaves();
     }
 }

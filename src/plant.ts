@@ -78,6 +78,7 @@ export default class Plant{
     canvas:Canvas;
     color:number[];
     leafColor:number[];
+    leafColorOffset:number;
     leafSize:number;
     leafOffset:Point;
     seedLocation:Point;
@@ -103,6 +104,7 @@ export default class Plant{
         this.canvas = canvas;
         this.color = color;
         this.leafColor = leafColor;
+        this.leafColorOffset = 0;
         this.leafSize = leafSize;
         this.leafOffset = leafOffset;
         this.seedLocation = seedLocation;
@@ -160,8 +162,8 @@ export default class Plant{
             this.nodes.push(newNode);
             this.liveNodes.push(newNode);
             if (draw) { 
+                this.canvas.drawThickLine(growingNode.location, newNode.location, 0.04, this.colorString());
                 if (!Parameters.noRender && this.nodes.length % 10 === 0) { this.drawChildren(this.nodes[0]); }
-                else { this.canvas.drawThickLine(growingNode.location, newNode.location, 0.04, this.colorString()); }
             }
         } else {
             var badIndex = this.liveNodes.indexOf(growingNode);
@@ -190,7 +192,6 @@ export default class Plant{
         parent.children.forEach((child) => {
             this.drawChildren(child);
             const thickness = Math.min(Math.max(minWidth, Parameters.lineThicknessFactor * child.totalChildren), maxWidth);
-            //this.canvas.drawThickLine(parent.location, child.location, thickness, '#FFFFFF');
             this.canvas.drawThickLine(parent.location, child.location, thickness, this.colorString());
         });
         if (parent.totalChildren > 10) {
@@ -200,21 +201,19 @@ export default class Plant{
         }
     }
 
-    killNode(node:Node, draw:boolean, backwardsLeaf:boolean = true) {
-        if (node.totalChildren == 0) {
+    killNode(node:Node, draw:boolean, blocked:boolean = false) {
+        if (node.totalChildren == 0 && !blocked) {
             node.addLeaf();
             if (draw && !Parameters.noRender)
-                this.drawLeaf(node, backwardsLeaf);
+                this.drawLeaf(node);
         }
     }
 
-    drawLeaf(node:Node, backwardsLeaf:boolean) {
+    drawLeaf(node:Node) {
         var angle =  Utils.random(-0.0001, 0.0001);
+        this.leafColorOffset += 0.25;
         if (node.parent instanceof Node) {
-            if (!backwardsLeaf)
-                angle = Utils.normalizeAngle(angle + Point.angle(node.parent.location, node.location));
-            else
-                angle = Utils.normalizeAngle(Point.angle(node.parent.location, node.location) + Math.PI);
+            angle = Utils.normalizeAngle(angle + Point.angle(node.parent.location, node.location));
         }
         this.canvas.drawLeaf(node.location, this.leafSize, angle, this.leafOffset, this.leafColorString());
     }
@@ -224,8 +223,7 @@ export default class Plant{
     }
 
     leafColorString() {
-        this.leafColor[2] = Math.min(this.leafColor[2] + 0.25, 90);
-        return `hsl(${this.leafColor[0]}, ${this.leafColor[1]}%, ${this.leafColor[2]}%)`;
+        return `hsl(${this.leafColor[0]}, ${this.leafColor[1]}%, ${Math.min(this.leafColor[2] + this.leafColorOffset, 90)}%)`;
     }
 
     germinate() {

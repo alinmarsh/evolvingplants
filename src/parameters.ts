@@ -51,6 +51,7 @@ export class Parameters {
 
     // Visuals:
     static skipGenerations:number = 1;
+    static maxTryCount = 100;
     static delay:number = 0;
     static drawingDelay:number = 0;
     static noRender:boolean = false;
@@ -112,7 +113,7 @@ export class Parameters {
         let value = eval(`Parameters.${name}`);
         switch (name) {
             case "skipGenerations":
-                return value - 1;
+                return value;
             case "drawingDelay":
                 return 100 - value;
             case "scaleFromPixel":

@@ -348,7 +348,7 @@
                     testPetri = new PetriDish(2 * Parameters.halfCanvas, canvas);
                     candidatePlants = this.getCandidateEvolvedPlants(plantRankings, newSeedLocations, testPetri, canvas);
                     growing = true;
-                    if (plantTryCount > 25) {
+                    if (plantTryCount > Parameters.maxTryCount / 2) {
                         plantToBeat = plantRankings[0];
                     }
                     evolvingState = Parameters.skipGens ? 3 : 4;
@@ -368,7 +368,7 @@
                     candidatePlants.forEach((plant, index) => {newList[index] = plant; });
                     newList[candidatePlants.length] = plantToBeat as Plant;
                     var rankings = this.getPlantRankings(newList, true);
-                    if (rankings[rankings.length - 1].id != plantToBeat.id || this.reset || plantTryCount > 50 || !Parameters.skipGens){
+                    if (rankings[rankings.length - 1].id != plantToBeat.id || this.reset || plantTryCount > Parameters.maxTryCount || !Parameters.skipGens){
                         if (this.reset) {
                             this.generation = 0;
                             plants = this.makeInitialPlants(canvas, this.petri, this.getSeedLocations());

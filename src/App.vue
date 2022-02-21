@@ -5,7 +5,7 @@
     <div id="app">
         <div id="sidebar" v-on:click.stop class="sidebar">
             <div class="generationCounter"> 
-                <div style="padding: 14px 18px"> Generation: {{generation}}
+                <div style="padding: 14px 18px"> Generation: {{plantTryCount == 0 ? generation : `${generation} (${plantTryCount})`}}
                 <button class="button" v-on:click="resetPlants()">Reset</button>
                 <button class="button playButton" v-if="paused" v-on:click="paused = false">&#9654;</button>
                 <button class="button pauseButton" v-if="!paused" v-on:click="paused = true">&#10074;&#10074;</button>
@@ -18,7 +18,7 @@
                 <div id="displayContent" class="content">
                     
                     <div class="input">
-                        <span>Skip Generations:</span>
+                        <span>Skip generations:</span>
                         <input type="text" id="skipGenerationsInput"
                         v-on:keyup="handleInput('skipGenerations'); resize();" style="max-width: 40px;width:fit-content;">
                     </div>
@@ -39,8 +39,8 @@
                     </div>
                     <div class="input">
                         <span>Optimize generations</span>
-                        <input type="checkbox" id="skipGensInput" 
-                            v-on:click="handleInput('skipGens');">
+                        <input type="range" id="maxTryCountInput" min="0" max="100"
+                                v-on:change="handleInput('maxTryCount')">
                     </div>
                     <div class="input">
                         <span>Disable rendering</span>
@@ -261,6 +261,7 @@
 
 
         private generation = 0;
+        private plantTryCount = 0;
         private sidebarVisible = false;
         private reset = false
         private petri!:PetriDish;
@@ -274,10 +275,7 @@
 
         private mounted() {
             window.addEventListener('resize', this.resize);
-            let canvas = this.resize();
-            //this.setInputVariableValues();
-
-            
+            let canvas = this.resize();            
             let startTime = Date.now();
             this.petri = new PetriDish(2 * Parameters.halfCanvas, canvas);
 
@@ -288,12 +286,13 @@
             let plantRankings:Plant[] = [];
             let candidatePlants:Plant[] = [];
             let plantToBeat:Plant;
+            let bestPlantsSoFar:Plant[];
+            let bestPlantScore = 0;
             let testPetri:PetriDish;
             let newSeedLocations:Point[];
             let stillGrowing = true;
             let growing = false;
             let evolvingState = 0;
-            let plantTryCount = 0;
             let x = 0;
             let lastDrawnTime = 0;
             const outerInterval = setInterval(() => {
@@ -340,15 +339,18 @@
                     this.petri = new PetriDish(2 * Parameters.halfCanvas, canvas);
                     newPlants = this.getChildEvolvedPlants(plantRankings, newSeedLocations, this.petri, canvas);
                     plantToBeat =  plantRankings[Math.ceil(Parameters.percentPlantsReplaced * Parameters.numPlants)];
+                    bestPlantScore = 0;
                     plantToBeat.id = Parameters.numPlants + 1;
                     evolvingState++;
-                    plantTryCount = 0;
+                    this.plantTryCount = 1;
                 }
                 if (evolvingState == 2 && !this.excecutingInterval && !this.reset) {
                     testPetri = new PetriDish(2 * Parameters.halfCanvas, canvas);
                     candidatePlants = this.getCandidateEvolvedPlants(plantRankings, newSeedLocations, testPetri, canvas);
+                    if (bestPlantScore == 0)
+                        bestPlantsSoFar = candidatePlants;
                     growing = true;
-                    if (plantTryCount > Parameters.maxTryCount / 2) {
+                    if (this.plantTryCount > Parameters.maxTryCount / 2) {
                         plantToBeat = plantRankings[0];
                     }
                     evolvingState = Parameters.skipGens ? 3 : 4;
@@ -360,38 +362,53 @@
                             if (!growing || this.reset) {
                                 evolvingState++;
                                 clearInterval(evolvingInnerInterval); 
+                                this.excecutingInterval = false;
                             }
                         }, 0);
                 }
-                if (evolvingState == 4) {
+                if (evolvingState == 4 && !this.reset) {
                     var newList:Plant[] = new Array<Plant>(candidatePlants.length + 1);
                     candidatePlants.forEach((plant, index) => {newList[index] = plant; });
                     newList[candidatePlants.length] = plantToBeat as Plant;
                     var rankings = this.getPlantRankings(newList, true);
-                    if (rankings[rankings.length - 1].id != plantToBeat.id || this.reset || plantTryCount > Parameters.maxTryCount || !Parameters.skipGens){
-                        if (this.reset) {
-                            this.generation = 0;
-                            plants = this.makeInitialPlants(canvas, this.petri, this.getSeedLocations());
-                            this.reset = false;
-                        } else {
-                            candidatePlants.forEach((plant, index) => {
-                                newPlants.push(Plant.createChildPlant(index + 1, plant, this.petri, canvas, plant.seedLocation));
-                            });
-                            while (newPlants.length < Parameters.numPlants) {
-                                newPlants.push(Plant.createRandomPlant(newPlants.length + 1, this.petri, canvas, newSeedLocations[newPlants.length], 
-                                            new Equation(this.petri), plants[0].directionEquation.length));
-                            }
-                            plants = newPlants;
-                            this.generation++;
+                    if (rankings[rankings.length - 1].id != plantToBeat.id || this.reset || this.plantTryCount >= Parameters.maxTryCount || !Parameters.skipGens){
+                        if (this.plantTryCount > Parameters.maxTryCount)
+                            candidatePlants = bestPlantsSoFar;
+                        candidatePlants.forEach((plant, index) => {
+                            newPlants.push(Plant.createChildPlant(index + 1, plant, this.petri, canvas, plant.seedLocation));
+                        });
+                        while (newPlants.length < Parameters.numPlants) {
+                            newPlants.push(Plant.createRandomPlant(newPlants.length + 1, this.petri, canvas, newSeedLocations[newPlants.length], 
+                                        new Equation(this.petri), plants[0].directionEquation.length));
                         }
+                        plants = newPlants;
+                        this.generation++;
                         evolvingState = 0;
                         stillGrowing = true;
+                        this.plantTryCount = 0;
                     } else {
+                        var possibleBestPlant = rankings[rankings.length - 2];
+                        var possibleBestScore = this.getPlantScore(possibleBestPlant, true);
+                        if (possibleBestScore > bestPlantScore) {
+                            bestPlantsSoFar = rankings.slice(0, -1);
+                            bestPlantScore = possibleBestScore;
+                        }
                         evolvingState = 2;
-                        plantTryCount++;
+                        this.plantTryCount++;
                     }
                     this.excecutingInterval = false;
                 }
+                if (this.reset && !this.excecutingInterval) {
+                    this.petri = new PetriDish(2 * Parameters.halfCanvas, canvas);
+                    seedLocations = this.getSeedLocations();
+                    this.makeInitialPlants(canvas, this.petri, seedLocations);
+                    this.generation = 0;
+                    plants = this.makeInitialPlants(canvas, this.petri, this.getSeedLocations());
+                    this.reset = false;
+                    evolvingState = 0;
+                    this.plantTryCount = 0;
+                    stillGrowing = true;
+                } 
             });
 
         }
@@ -423,7 +440,7 @@
 
         setInputVariableValues() {
             const inputVariableNames = ["allowStraightLines", "skipGenerations", "activateRoundDelay", 
-                                        "displayEquations", "drawingDelay", "noRender", "skipGens", "scaleFromPixel", "numPlants",
+                                        "displayEquations", "drawingDelay", "noRender", "maxTryCount", "scaleFromPixel", "numPlants",
                                         "percentMaximumImperfectCopy", "probibilityRandomPlant",
                                         "percentPlantsReplaced", "numberGrowthAngles",
                                         "maximumLiveNodes", "growthOpportunities", 
@@ -678,26 +695,8 @@
 
         private getPlantRankings(plants:Plant[], noOffense:boolean = false) {
             var scores = Array<[number, number]>();
-            var objectiveFunction = Parameters.objectiveFunction;
-            if (objectiveFunction == Objectives.OFFENSE && noOffense)
-                objectiveFunction = Objectives.NODES; 
             plants.forEach((plant,index) => {
-                switch(objectiveFunction) {
-                        case Objectives.AREA:
-                            scores.push([plant.getGrowth(), index]);
-                            break;
-                        case Objectives.LEAVES:
-                            scores.push([plant.getLeaves(), index]);//[plant.timeOfDeath < 0 ? this.petri.getTime() : plant.timeOfDeath, index]);
-                            break;
-                        case Objectives.NODES:
-                            scores.push([plant.nodes.length, index]);
-                            break;
-                        case Objectives.OFFENSE:
-                            scores.push([plant.petri.getBlockingCount(plant.id) + (plant.getGrowth() / (this.generation * this.generation)), index]);
-                            break;
-                        default:
-                            throw new Error('Invalid objective');
-                }
+                scores.push([this.getPlantScore(plant, noOffense), index]);
             });
             const rankedPlants:Plant[] = new Array<Plant>(plants.length);
             scores.sort((a:[number, number], b:[number, number]) => {
@@ -715,6 +714,24 @@
                 rankedPlants[index] = plants[scores[index][1]];
             });
             return rankedPlants;
+        }
+
+        private getPlantScore(plant:Plant, noOffense:boolean) {
+            var objectiveFunction = Parameters.objectiveFunction;
+            if (objectiveFunction == Objectives.OFFENSE && noOffense)
+                objectiveFunction = Objectives.NODES; 
+            switch(objectiveFunction) {
+                case Objectives.AREA:
+                    return plant.getGrowth();
+                case Objectives.LEAVES:
+                    return plant.getLeaves();//[plant.timeOfDeath < 0 ? this.petri.getTime() : plant.timeOfDeath, index]);
+                case Objectives.NODES:
+                    return plant.nodes.length;
+                case Objectives.OFFENSE:
+                    return plant.petri.getBlockingCount(plant.id) + (plant.getGrowth() / (this.generation * this.generation));
+                default:
+                    throw new Error('Invalid objective');
+            }
         }
 
         private growPlants(plants:Plant[], draw:boolean, growUntilEnd:boolean = false):boolean {

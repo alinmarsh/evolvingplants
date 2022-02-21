@@ -51,7 +51,7 @@ export class Parameters {
 
     // Visuals:
     static skipGenerations:number = 1;
-    static maxTryCount = 100;
+    static maxTryCount = 0;
     static delay:number = 0;
     static drawingDelay:number = 0;
     static noRender:boolean = false;
@@ -158,9 +158,6 @@ export class Parameters {
                 case 'noRender':
                     Parameters.noRender = newBoolean;
                     return;
-                case 'skipGens':
-                    Parameters.skipGens = newBoolean;
-                    return;
                 case 'allowStraightLines':
                     Parameters.allowStraightLines = newBoolean;
                     return;
@@ -179,6 +176,10 @@ export class Parameters {
                     return;
                 case 'drawingDelay':
                     Parameters.drawingDelay = 100 - newNumber;
+                    return;
+                case 'maxTryCount':
+                    Parameters.maxTryCount = newNumber;
+                    Parameters.skipGens = Parameters.maxTryCount > 0;
                     return;
                 case 'scaleFromPixel':
                     Parameters.newScaleFromPixel = 140 - newNumber;

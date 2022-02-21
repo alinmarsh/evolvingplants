@@ -20,24 +20,24 @@ export default class Equation {
         this.memo = {};
     }
 
-    evaluate(id:number, equation:number[], node:Node): number {
+    evaluate(id:number, equation:number[], node:Node, plantTime:number): number {
         this.memo = {};
-        var subList = this.evaluateSubExpressions(id, equation, node);
+        var subList = this.evaluateSubExpressions(id, equation, node, plantTime);
         var solution = 0;
         subList.forEach((term) => { solution += term; })
         return solution;
     }
 
-    private evaluateSubExpressions(id:number, equation:number[], node:Node): number[] {
+    private evaluateSubExpressions(id:number, equation:number[], node:Node, plantTime:number): number[] {
         if (equation.length === 0) { return []; }
         const firstCommand = equation[0] % this.definedNumbers;
         if (firstCommand > Operations.NUMBER_OF_OPERATIONS - 1) {
-            var constantNum = this.constant(id, firstCommand, node);
+            var constantNum = this.constant(id, firstCommand, node, plantTime);
             if (isNaN(constantNum)) { throw Error('Invalid (NaN) constant in equation'); }
 
-            return [constantNum].concat(this.evaluateSubExpressions(id, equation.slice(1), node));
+            return [constantNum].concat(this.evaluateSubExpressions(id, equation.slice(1), node, plantTime));
         }
-        var restOfEquation:number[] = Utils.copyArray(this.evaluateSubExpressions(id, equation.slice(1), node));
+        var restOfEquation:number[] = Utils.copyArray(this.evaluateSubExpressions(id, equation.slice(1), node, plantTime));
         switch (firstCommand) {
                 
             case Operations.SUBTRACT:
@@ -136,7 +136,7 @@ export default class Equation {
 
     }
 
-    constant(id:number, input:number, node:Node):(number) {
+    constant(id:number, input:number, node:Node, plantTime:number):(number) {
         let index = input - Operations.NUMBER_OF_OPERATIONS;
         if (!Parameters.variablesAllowed[index]) { return 1; }
         switch(input) {
@@ -165,7 +165,7 @@ export default class Equation {
                 return this.memo[Constants.ENEMIES_SURROUNDING];
 
             case Constants.TIME:
-                return this.petri.getTime();
+                return plantTime;//this.petri.getTime();
 
             case Constants.RANDOM:
                 return Parameters.allowRandomness ? this.getRandomNumber() : 1;
@@ -325,10 +325,10 @@ export default class Equation {
                     }
                     restOfEquation.splice(0, 3);
                 } else if (restOfEquation.length > 2) {
-                    restOfEquation[2] = `if (${this.constantToString(Constants.RANDOM)} > ${restOfEquation[0]}) { ${restOfEquation[1]} } else { ${restOfEquation[2]} }`;
+                    restOfEquation[2] = `if (random > ${restOfEquation[0]}) { ${restOfEquation[1]} } else { ${restOfEquation[2]} }`;
                     restOfEquation.splice(0, 2);
                 } else if (restOfEquation.length > 1) {
-                    restOfEquation[1] = `if (${this.constantToString(Constants.RANDOM)} > 0) { ${restOfEquation[0]} } else { ${restOfEquation[1]} }`;
+                    restOfEquation[1] = `if (random > 0) { ${restOfEquation[0]} } else { ${restOfEquation[1]} }`;
                     restOfEquation.splice(0, 1);
                 }
                 break;
@@ -349,7 +349,7 @@ export default class Equation {
 
     constantToString(term:number):(number|string) {  
         let index = term - Operations.NUMBER_OF_OPERATIONS;
-        if (!Parameters.variablesAllowed[index] && term != Constants.RANDOM) { return 1; }
+        if (!Parameters.variablesAllowed[index]) { return 1; }
         switch(term) {
             case Constants.CENTER_DIRECTION:
                 return 'direction_to_center';

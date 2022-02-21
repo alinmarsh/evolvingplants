@@ -89,6 +89,7 @@ export default class Plant{
     evaluator:Equation;
     squaresOwned:number;
     timeOfDeath:number;
+    plantTime:number;
 
     nodes:Node[];
     liveNodes:Node[];
@@ -117,11 +118,13 @@ export default class Plant{
         this.liveNodes = [];
         this.squaresOwned = 0;
         this.timeOfDeath = -1;
+        this.plantTime = 0;
 
         this.germinate();
     }
 
     grow(draw:boolean, firstGrowth:boolean = true):boolean {
+        this.plantTime++;
         if (this.liveNodes.length === 0) { 
             return false; }
 
@@ -134,14 +137,14 @@ export default class Plant{
         let maxGrowingDesire = Number.MIN_SAFE_INTEGER;
         let growingNode = this.liveNodes[this.liveNodes.length - 1];
         chosenNodes.forEach((node) => {
-            var growingDesire = this.evaluator.evaluate(this.id, this.branchEquation, node);
+            var growingDesire = this.evaluator.evaluate(this.id, this.branchEquation, node, this.plantTime);
             if (growingDesire > maxGrowingDesire) {
                 maxGrowingDesire = growingDesire;
                 growingNode = node;
             }
         });
         var numAngles = Parameters.numberGrowthAngles;
-        var relativeAngle = this.evaluator.evaluate(this.id, this.directionEquation, growingNode) % (2 * Math.PI);
+        var relativeAngle = this.evaluator.evaluate(this.id, this.directionEquation, growingNode, this.plantTime) % (2 * Math.PI);
         var relativeSlice = Math.floor(relativeAngle / Parameters.sliceSize);
         var absoluteSlice = (relativeSlice + growingNode.absoluteSlice) % numAngles;
 
@@ -237,7 +240,7 @@ export default class Plant{
         let maxValue = Number.MIN_SAFE_INTEGER;
         let bestLocation = this.seedLocation;
         this.nodes.forEach((node) => {
-            const value = this.evaluator.evaluate(this.id, this.locationEquation, node);
+            const value = this.evaluator.evaluate(this.id, this.locationEquation, node, this.plantTime);
             if (value > maxValue) {
                 maxValue = value;
                 bestLocation = node.location;

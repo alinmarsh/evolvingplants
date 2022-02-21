@@ -279,10 +279,20 @@
             var seedLocations = this.getSeedLocations();
 
             let plants = this.makeInitialPlants(canvas, this.petri, seedLocations);
+            let newPlants:Plant[] = [];
+            let plantRankings:Plant[] = [];
+            let candidatePlants:Plant[] = [];
+            let plantToBeat:Plant;
+            let testPetri:PetriDish;
+            let newSeedLocations:Point[];
             let stillGrowing = true;
+            let growing = false;
+            let evolvingState = 0;
+            let plantTryCount = 0;
             let x = 0;
             let lastDrawnTime = 0;
             const outerInterval = setInterval(() => {
+                let draw = this.generation % Parameters.skipGenerations === 0;
                 x++;
                 const roundDelay = Parameters.activateRoundDelay ? Parameters.roundDelay : 0;
                 const wait = this.generation % Parameters.skipGenerations === 0 && Date.now() - lastDrawnTime < roundDelay
@@ -299,7 +309,6 @@
                         }
                         this.lastDrawnPlants = plants;
                     }
-                    let draw = this.generation % Parameters.skipGenerations === 0;
                     let delay = draw ? Parameters.drawingDelay : 0;
                     this.lastDrawnPetri = draw ? this.petri : this.lastDrawnPetri;
                     const interval = setInterval(() => {
@@ -307,28 +316,74 @@
                             stillGrowing = this.growPlants(plants,  draw);
                             if (!stillGrowing || this.reset) { 
                                 this.excecutingInterval = false;
+                                evolvingState = this.reset ? 0 : 1;
+                                newPlants = [];
+                                candidatePlants = [];
                                 if (draw) { lastDrawnTime = Date.now(); }
                                 clearInterval(interval); 
                             }
                         }
                     }, delay);
                 }
-                if (!this.excecutingInterval && (!stillGrowing || this.reset) && !this.paused) {
-                    
+
+                if (evolvingState == 1 && !this.excecutingInterval && !this.reset) {
+                    plantRankings = this.getPlantRankings(plants);
+                    newSeedLocations = this.getNewSeedLocations(plantRankings);
+                    this.displayRoundResults(plantRankings, canvas, draw);
                     Parameters.updateScaleFromPixel();
                     canvas = new Canvas(canvas.getCtx());
                     this.petri = new PetriDish(2 * Parameters.halfCanvas, canvas);
-                    if (this.reset) {
-                        this.generation = 0;
-                        plants = this.makeInitialPlants(canvas, this.petri, this.getSeedLocations());
-                        this.reset = false;
-                    } else {
-                        plants = this.makeEvolvedPlants(plants, this.petri, canvas, this.generation % Parameters.skipGenerations === 0);
-                        this.generation++;
-                    }
-                    stillGrowing = true;
+                    newPlants = this.getChildEvolvedPlants(plantRankings, newSeedLocations, this.petri, canvas);
+                    plantToBeat =  plantRankings[Math.ceil(Parameters.percentPlantsReplaced * Parameters.numPlants)];
+                    plantToBeat.id = Parameters.numPlants + 1;
+                    evolvingState++;
+                    plantTryCount = 0;
                 }
-                
+                if (evolvingState == 2 && !this.excecutingInterval && !this.reset) {
+                    testPetri = new PetriDish(2 * Parameters.halfCanvas, canvas);
+                    candidatePlants = this.getCandidateEvolvedPlants(plantRankings, newSeedLocations, testPetri, canvas);
+                    growing = true;
+                    evolvingState = 3;
+                }
+                if (evolvingState == 3 && !this.excecutingInterval && !this.reset) {
+                    this.excecutingInterval = true;
+                    const evolvingInnerInterval = setInterval(() => {
+                            growing = this.growPlants(candidatePlants, false, true);
+                            if (!growing || this.reset) {
+                                evolvingState++;
+                                clearInterval(evolvingInnerInterval); 
+                            }
+                        }, 0);
+                }
+                if (evolvingState == 4) {
+                    var newList:Plant[] = new Array<Plant>(candidatePlants.length + 1);
+                    candidatePlants.forEach((plant, index) => {newList[index] = plant; });
+                    newList[candidatePlants.length] = plantToBeat as Plant;
+                    var rankings = this.getPlantRankings(newList);
+                    if (rankings[rankings.length - 1].id != plantToBeat.id || this.reset || plantTryCount > 50){
+                        if (this.reset) {
+                            this.generation = 0;
+                            plants = this.makeInitialPlants(canvas, this.petri, this.getSeedLocations());
+                            this.reset = false;
+                        } else {
+                            candidatePlants.forEach((plant, index) => {
+                                newPlants.push(Plant.createChildPlant(index + 1, plant, this.petri, canvas, plant.seedLocation));
+                            });
+                            while (newPlants.length < Parameters.numPlants) {
+                                newPlants.push(Plant.createRandomPlant(newPlants.length + 1, this.petri, canvas, newSeedLocations[newPlants.length], 
+                                            new Equation(this.petri), plants[0].directionEquation.length));
+                            }
+                            plants = newPlants;
+                            this.generation++;
+                        }
+                        evolvingState = 0;
+                        stillGrowing = true;
+                    } else {
+                        evolvingState = 2;
+                        plantTryCount++;
+                    }
+                    this.excecutingInterval = false;
+                }
             });
 
         }
@@ -515,40 +570,18 @@
             }
         }
 
-        private makeEvolvedPlants(plants:Plant[], newPetri:PetriDish, canvas:Canvas, draw:boolean = false) {
+        private getNewSeedLocations(plantRankings:Plant[]) {
             var seedLocations = this.getSeedLocations();
-            var shuffledSeedLocations = Utils.shuffleArray(seedLocations);
-            var newPlants:Plant[] = [];
-
-            var plantRankings:Plant[] = this.getPlantRankings(plants);
-
-           
-            var maxPlant = plantRankings[plantRankings.length - 1];
-            let randomPlant = maxPlant;
-            
-            if (Parameters.displayEquations && this.generation % Parameters.skipGenerations === 0) {
-                this.updateDisplayedEquations(maxPlant)
-            };
-
-            
-            
-            if (plantRankings.length > 1) {
-                randomPlant = Parameters.randomParent ? 
-                plantRankings[Utils.random(Math.floor(Parameters.percentPlantsReplaced * Parameters.numPlants), plantRankings.length - 2)] :
-                plantRankings[plantRankings.length - 2];
-            }
-
-
             let locationMethod = Parameters.locationMethod;
 
             if (locationMethod === LocationSelection.FIXED) {
-                if (Parameters.numPlants !== plants.length) { 
+                if (Parameters.numPlants !== plantRankings.length) { 
                     console.log('changed number');
                     locationMethod = LocationSelection.SHUFFLED;
                 }
                 else {
-                    for (let i = 0; i < plants.length; i++) {
-                        const plant = plants[i];
+                    for (let i = 0; i < plantRankings.length; i++) {
+                        const plant = plantRankings[i];
                         let inSeedLocations = false;
                         seedLocations.forEach((location) => {
                             if (location.equals(plant.seedLocation)) { inSeedLocations = true; }
@@ -562,20 +595,15 @@
                 }
                 
             }
-            
-            
 
-            //if (draw) { maxPlant.canvas.outlineSquare(new Point(0,0), 2, maxPlant.color) };
+            if (locationMethod == LocationSelection.SHUFFLED)
+                return Utils.shuffleArray(seedLocations);
+            var newLocations:Point[] = [];
             plantRankings.forEach((plant, index) => {
-                if (newPlants.length === Parameters.numPlants) { return newPlants; }
-
                 let newLocation = new Point(0,0);
                 switch (locationMethod) {
                     case LocationSelection.FIXED:
                         newLocation = plant.seedLocation;
-                        break;
-                    case LocationSelection.SHUFFLED:
-                        newLocation = shuffledSeedLocations[index];
                         break;
                     case LocationSelection.CHOSEN:
                         newLocation = plant.getDescendantLocation();
@@ -583,81 +611,109 @@
                     default:
                         throw new Error('Bad seed location');
                 }
-                
-                if (index < Parameters.percentPlantsReplaced * Parameters.numPlants) {
-                    if (draw && Parameters.activateRoundDelay) { 
-                        canvas.fillCircle(plant.seedLocation, 2, 'red', 0.2); 
-                        canvas.drawCircle(plant.seedLocation, 2, 'red'); 
-                    }
-                    if (Math.random() > Parameters.probibilityRandomPlant) {
-                        newPlants.push(Plant.createMutatedPlant(index + 1, maxPlant, randomPlant, newPetri, canvas, newLocation));
-                    } else {
-                        newPlants.push(Plant.createRandomPlant(index + 1, newPetri, canvas, newLocation, 
-                            new Equation(newPetri), plants[0].directionEquation.length));
-                    }
-                } else {
-                     newPlants.push(Plant.createChildPlant(index + 1, plant, newPetri, canvas, newLocation));
-                     if (draw && index === plantRankings.length - 1 && Parameters.activateRoundDelay) { 
-                         canvas.fillCircle(plant.seedLocation, 2, 'green', 0.2); 
-                         canvas.drawCircle(plant.seedLocation, 2, 'green'); 
-                    }
-                }
+                newLocations.push(newLocation);
             });
-
-            while (newPlants.length < Parameters.numPlants) {
-                let newLocation = shuffledSeedLocations[newPlants.length];
-                newPlants.push(Plant.createRandomPlant(newPlants.length + 1, newPetri, canvas, newLocation, 
-                            new Equation(newPetri), plants[0].directionEquation.length));
-            }
-            return newPlants;
-
+            return newLocations;
         }
 
+        private displayRoundResults(rankedPlants:Plant[], canvas:Canvas, draw:boolean) {
+            if (Parameters.displayEquations && this.generation % Parameters.skipGenerations === 0) {
+                this.updateDisplayedEquations(rankedPlants[rankedPlants.length - 1])
+            };
+            if (draw && Parameters.activateRoundDelay) {
+                rankedPlants.forEach((plant, index) => {
+                    if (index < Parameters.percentPlantsReplaced * Parameters.numPlants) {
+                            canvas.fillCircle(plant.seedLocation, 2, 'red', 0.2); 
+                            canvas.drawCircle(plant.seedLocation, 2, 'red');
+                    } else if (index === rankedPlants.length - 1) { 
+                            canvas.fillCircle(plant.seedLocation, 2, 'green', 0.2); 
+                            canvas.drawCircle(plant.seedLocation, 2, 'green'); 
+                    }
+                });
+            }
+            
+        }
+
+        private getChildEvolvedPlants(plantRankings:Plant[], newLocations:Point[], newPetri:PetriDish, canvas:Canvas) {
+            var newPlants:Plant[] = [];
+            plantRankings.forEach((plant, index) => {
+                if (index >= Parameters.percentPlantsReplaced * Parameters.numPlants) {
+                    newPlants.push(Plant.createChildPlant(index + 1, plant, newPetri, canvas, newLocations[index]));
+                }
+            });
+            return newPlants;
+        }
+
+        private getCandidateEvolvedPlants(plantRankings:Plant[], newLocations:Point[], testPetri:PetriDish, canvas:Canvas) {
+            var maxPlant = plantRankings[plantRankings.length - 1];
+            let randomPlant = maxPlant;
+            if (plantRankings.length > 1) {
+                randomPlant = Parameters.randomParent ? 
+                plantRankings[Utils.random(Math.floor(Parameters.percentPlantsReplaced * Parameters.numPlants), plantRankings.length - 2)] :
+                plantRankings[plantRankings.length - 2];
+            }
+
+            var replacingPlants:Plant[] = [];
+            plantRankings.forEach((plant, index) => {
+                if (index < Parameters.percentPlantsReplaced * Parameters.numPlants) {
+                    if (Math.random() < Parameters.probibilityRandomPlant) {
+                        replacingPlants.push(Plant.createMutatedPlant(index + 1, maxPlant, randomPlant, testPetri, canvas, newLocations[index]));
+                    } else {
+                        replacingPlants.push(Plant.createRandomPlant(index + 1, testPetri, canvas, newLocations[index], 
+                            new Equation(testPetri), plantRankings[0].directionEquation.length));
+                    } 
+                }               
+            });
+
+            return replacingPlants;
+        }
 
         private getPlantRankings(plants:Plant[]) {
-            const plantsCopy = Utils.copyArray(plants);
-            const rankedPlants:Plant[] = [];
-
-            while (plantsCopy.length > 0) {
-                var minIndex = 0;
-                var minScore = Number.MAX_SAFE_INTEGER;
-                plantsCopy.forEach((plant, index) => {
-                    let score:number;
-                    switch(Parameters.objectiveFunction) {
+            var scores = Array<[number, number]>();
+            plants.forEach((plant,index) => {
+                switch(Parameters.objectiveFunction) {
                         case Objectives.AREA:
-                            score = plant.getGrowth();
+                            scores.push([plant.getGrowth(), index]);
                             break;
                         case Objectives.SURVIVAL:
-                            score = plant.timeOfDeath;
+                            scores.push([plant.timeOfDeath < 0 ? this.petri.getTime() : plant.timeOfDeath, index]);
                             break;
                         case Objectives.NODES:
-                            score = plant.nodes.length;
+                            scores.push([plant.nodes.length, index]);
                             break;
                         case Objectives.OFFENSE:
-                            score = plant.petri.getBlockingCount(plant.id) + (plant.getGrowth() / (this.generation * this.generation));
+                            scores.push([plant.petri.getBlockingCount(plant.id) + (plant.getGrowth() / (this.generation * this.generation)), index]);
                             break;
                         default:
                             throw new Error('Invalid objective');
-                    }
-                    if (score  < minScore) {
-                        minScore = score;
-                        minIndex = index;
-                    }
-                });
-                rankedPlants.push(plantsCopy[minIndex]);
-                plantsCopy.splice(minIndex, 1);
-            }
+                }
+            });
+            const rankedPlants:Plant[] = new Array<Plant>(plants.length);
+            scores.sort((a:[number, number], b:[number, number]) => {
+                if (a[0] > b[0]) {
+                    return 1;
+                }
+
+                if (a[0] < b[0]) {
+                    return -1;
+                }
+
+                return 0;
+            });
+            scores.forEach((score,index) => {
+                rankedPlants[index] = plants[scores[index][1]];
+            });
             return rankedPlants;
         }
 
-        private growPlants(plants:Plant[], draw:boolean):boolean {
+        private growPlants(plants:Plant[], draw:boolean, growUntilEnd:boolean = false):boolean {
             let stillGrowing  = new Array<Plant>();
             plants.forEach((plant, index) => {
                 if (plant.grow(draw)) { 
                     stillGrowing.push(plant);
                 }
             });
-            if (stillGrowing.length == 1 && Parameters.numPlants > 2) {
+            if (!growUntilEnd && stillGrowing.length == 1 && Parameters.numPlants > 2) {
                 return this.getPlantRankings(plants)[plants.length - 1].id !== stillGrowing[0].id;
             }
             return stillGrowing.length > 0;

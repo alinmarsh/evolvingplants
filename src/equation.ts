@@ -349,7 +349,7 @@ export default class Equation {
 
     constantToString(term:number):(number|string) {  
         let index = term - Operations.NUMBER_OF_OPERATIONS;
-        if (!Parameters.variablesAllowed[index]) { return 1; }
+        if (!Parameters.variablesAllowed[index] && term != Constants.RANDOM) { return 1; }
         switch(term) {
             case Constants.CENTER_DIRECTION:
                 return 'direction_to_center';

@@ -30,7 +30,9 @@ export default class Plant{
     }
 
     static createChildPlant(id:number, parent:Plant, petri:PetriDish, canvas:Canvas, newSeedLocation:Point) {
-        return new Plant(id, petri, canvas, parent.color, parent.leafColor, newSeedLocation, parent.leafSize, parent.leafOffset, parent.branchEquation, 
+        const newColor = parent.color;
+        newColor[2] = Math.max(newColor[2] - 1, 25);
+        return new Plant(id, petri, canvas, newColor, parent.leafColor, newSeedLocation, parent.leafSize, parent.leafOffset, parent.branchEquation, 
             parent.directionEquation, parent.locationEquation, new Equation(petri));
     }
 
@@ -182,7 +184,7 @@ export default class Plant{
         if (this.liveNodes.length === 0) {
             this.timeOfDeath = this.petri.getTime();
         } else if (firstGrowth){
-            var probibilitySecondGrowth = this.getLeaves() * 0.01;
+            var probibilitySecondGrowth = this.getLeaves() * 0.1;
             if (Math.random() < probibilitySecondGrowth)
                 return this.grow(draw, false);
         }

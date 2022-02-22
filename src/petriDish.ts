@@ -96,6 +96,11 @@ export default class PetriDish {
             //console.log('grew back');
             return [false, false]; 
         }
+        var roundedPoint = Point.round(newLocation);
+        for (var i = 0; i < growingNode.children.length; i++) {
+            if (roundedPoint.equals(Point.round(growingNode.children[i].location)))
+                return [false, false]; 
+        }
         return this.attemptGrowth(id, growingNode.location, newLocation, true);
     }
 
@@ -111,9 +116,13 @@ export default class PetriDish {
             //console.log('owned by other');
             return [false, true]; 
         }
-        if (this.squareAt(endPoint).getRecources() <= 0) { 
+        var square = this.squareAt(endPoint);
+        if (square.getRecources() <= 0) { 
+            if (Point.round(startPoint).equals(Point.round(endPoint)) && !square.grownTwice)
+                square.grownTwice = true;
+            else
             //console.log('no recources');
-            return [false, false]; }
+                return [false, false]; }
         var crossesDiagonal = endPoint.getX() !== startPoint.getX() && endPoint.getY() !== startPoint.getY();
         if (crossesDiagonal) {
             var diagonalPointA = new Point(startPoint.getX(), endPoint.getY());

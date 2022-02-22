@@ -338,7 +338,7 @@
                     canvas = new Canvas(canvas.getCtx());
                     this.petri = new PetriDish(2 * Parameters.halfCanvas, canvas);
                     newPlants = this.getChildEvolvedPlants(plantRankings, newSeedLocations, this.petri, canvas);
-                    plantToBeat =  plantRankings[Math.ceil(Parameters.percentPlantsReplaced * Parameters.numPlants)];
+                    plantToBeat =  plantRankings[Math.min(Parameters.numPlants - 1, Math.ceil(Parameters.percentPlantsReplaced * Parameters.numPlants))];
                     bestPlantScore = 0;
                     plantToBeat.id = Parameters.numPlants + 1;
                     evolvingState++;

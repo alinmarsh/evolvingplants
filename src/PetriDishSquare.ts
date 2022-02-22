@@ -5,11 +5,13 @@ export default class PetriDishSquare {
     private owner:number;
     private claimed:boolean;
     private opportunitiesUsed:number;
+    public grownTwice:boolean;
 
     constructor(owner:number, claimed:boolean) {
         this.owner = owner;
         this.claimed = claimed;
         this.opportunitiesUsed = 0;
+        this.grownTwice = false;
     }
 
     getOwner() { return this.owner; }
